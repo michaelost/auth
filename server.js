@@ -23,8 +23,26 @@ db.on('error', function(err) {
   console.log(err);
 });
 
+function createTestUser() {
+  const newUser = new User({ username: 'mi', password: md5('123') });
+  newUser.save(function (err) {
+    if (err) {
+      console.log(err);
+    }
+    console.log('test user: mi , password: 123 created.');
+  });
+}
+
 db.once('open', function() {
   console.log('connection opened');
+  console.log('dropping users collection...');
+  User.collection.drop()
+    .then(data => {
+      createTestUser()
+    })
+    .catch(err => {
+      createTestUser()
+    }) 
 });
 
 app.use(express.static('public'));
@@ -37,6 +55,7 @@ app.use(flash());
 app.use(session({ secret: 'keyboard cat' }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(require('cors')());
 
 passport.use(new Strategy(
   function(username, password, done) {
@@ -47,7 +66,6 @@ passport.use(new Strategy(
         if (!err && hashPassword == user.password){
           const secret = 'secret';
           const token = jwt.sign(username, secret);
-          console.log('token',token);
           const dataWithToken = Object.assign({ token }, { username });
           return done(null, dataWithToken);
         } else {
